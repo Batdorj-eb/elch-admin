@@ -1,0 +1,417 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import Editor from '../components/Editor';
+
+export default function NewsEditorPage() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const { apiRequest, API_URL } = useAuth();
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [categories, setCategories] = useState([]);
+  
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [tags, setTags] = useState('');
+  const [coverImage, setCoverImage] = useState(null); // Actual File object
+  const [coverPreview, setCoverPreview] = useState(''); // Preview URL
+  const [content, setContent] = useState('');
+  const [excerpt, setExcerpt] = useState('');
+  const [status, setStatus] = useState('draft');
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [isBreaking, setIsBreaking] = useState(false);
+
+  useEffect(() => {
+    loadCategories();
+    if (id) {
+      loadArticle(id);
+    }
+  }, [id]);
+
+  const loadCategories = async () => {
+    try {
+      const data = await apiRequest('/categories');
+      if (data.success) {
+        setCategories(data.data.categories);
+        if (data.data.categories.length > 0 && !categoryId) {
+          setCategoryId(data.data.categories[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+    }
+  };
+
+  const loadArticle = async (articleId) => {
+    try {
+      setLoading(true);
+      const data = await apiRequest(`/articles/${articleId}`);
+      if (data.success) {
+        const article = data.data;
+        setTitle(article.title);
+        setSlug(article.slug);
+        setCategoryId(article.category_id);
+        setTags(article.tags || '');
+        setContent(article.content);
+        setExcerpt(article.excerpt || '');
+        setStatus(article.status);
+        setIsFeatured(article.is_featured);
+        setIsBreaking(article.is_breaking);
+        if (article.cover_image) {
+          setCoverPreview(article.cover_image);
+        }
+      }
+    } catch (err) {
+      setError('Нийтлэл ачаалахад алдаа гарлаа.');
+      console.error('Failed to load article:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toSlug = (s) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+  const onTitleChange = (v) => {
+    setTitle(v);
+    if (!id && !slug) {
+      setSlug(toSlug(v));
+    }
+  };
+
+  const onCoverChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setCoverImage(file); // Store actual File
+    const preview = URL.createObjectURL(file);
+    setCoverPreview(preview); // Store preview URL
+  };
+
+  // 🔥 Image upload helper for CKEditor
+  async function uploadImage(file) {
+    try {
+      console.log('📤 [NewsEditorPage] Starting upload:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+      
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      console.log('📤 [NewsEditorPage] Sending request to:', `${API_URL}/upload/image`);
+      
+      const response = await fetch(`${API_URL}/upload/image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        },
+        body: formData
+      });
+
+      console.log('📥 [NewsEditorPage] Response status:', response.status);
+      
+      const data = await response.json();
+      console.log('📥 [NewsEditorPage] Response data:', data);
+      
+      if (data.success && data.data && data.data.url) {
+        console.log('✅ [NewsEditorPage] Image uploaded successfully:', data.data.url);
+        return data.data.url;
+      }
+      
+      throw new Error(data.message || 'Upload failed');
+    } catch (err) {
+      console.error('❌ [NewsEditorPage] Image upload failed:', err);
+      alert('Зураг upload хийхэд алдаа гарлаа: ' + err.message);
+      throw err;
+    }
+  }
+
+  // 🔥 Video upload helper
+  async function uploadVideo(file) {
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+      
+      const response = await fetch(`${API_URL}/upload/video`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        return data.data.url;
+      }
+      throw new Error(data.message || 'Upload failed');
+    } catch (err) {
+      console.error('Video upload failed:', err);
+      throw err;
+    }
+  }
+
+  const handleSave = async () => {
+    // Validation
+    if (!title.trim()) {
+      setError('Гарчиг оруулна уу.');
+      return;
+    }
+    if (!slug.trim()) {
+      setError('Slug оруулна уу.');
+      return;
+    }
+    if (!content.trim()) {
+      setError('Контент оруулна уу.');
+      return;
+    }
+    if (!categoryId) {
+      setError('Ангилал сонгоно уу.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // 🔥 FIX: Upload cover image FIRST if new file selected
+      let uploadedCoverUrl = '';
+      if (coverImage && coverImage instanceof File) {
+        console.log('📤 Uploading cover image...');
+        uploadedCoverUrl = await uploadImage(coverImage);
+        console.log('✅ Cover uploaded:', uploadedCoverUrl);
+      } else if (coverPreview && !coverPreview.startsWith('blob:')) {
+        // Use existing cover URL if editing
+        uploadedCoverUrl = coverPreview;
+      }
+
+      const payload = {
+        title,
+        slug,
+        category_id: parseInt(categoryId),
+        content,
+        excerpt: excerpt || '',
+        tags: tags || '',
+        status,
+        is_featured: isFeatured,
+        is_breaking: isBreaking,
+        cover_image: uploadedCoverUrl || '' // Real URL or empty
+      };
+
+      console.log('📤 Sending payload:', payload);
+
+      const url = id ? `/articles/${id}` : '/articles';
+      const method = id ? 'PUT' : 'POST';
+
+      const data = await apiRequest(url, {
+        method,
+        body: JSON.stringify(payload)
+      });
+
+      if (data.success) {
+        alert(id ? 'Амжилттай шинэчлэгдлээ!' : 'Амжилттай үүсгэгдлээ!');
+        navigate('/news');
+      } else {
+        setError(data.message || 'Алдаа гарлаа.');
+      }
+    } catch (err) {
+      console.error('❌ Save error:', err);
+      setError(err.message || 'Серверийн алдаа гарлаа.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && id) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="text-lg font-medium">Ачаалж байна...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-extrabold tracking-tight">
+          {id ? 'Мэдээ засах' : 'Мэдээ үүсгэх'}
+        </h1>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600 disabled:bg-gray-400"
+          >
+            {loading ? 'Хадгалж байна...' : 'Хадгалах'}
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="rounded-lg bg-gray-100 px-4 py-2 hover:bg-gray-200"
+          >
+            Буцах
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+          <p className="text-sm text-red-800">❌ {error}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Main Content */}
+        <div className="space-y-4 lg:col-span-2">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <label className="text-sm font-medium">Гарчиг *</label>
+            <input
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              placeholder="Мэдээний гарчиг"
+              className="mt-1 w-full rounded-lg border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+              required
+            />
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <label className="text-sm font-medium">Товч тайлбар</label>
+            <textarea
+              value={excerpt}
+              onChange={(e) => setExcerpt(e.target.value)}
+              placeholder="Богино тайлбар (2-3 өгүүлбэр)"
+              className="mt-1 w-full rounded-lg border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+              rows={3}
+            />
+          </div>
+
+          <Editor
+            value={content}
+            onChange={setContent}
+            uploadImage={uploadImage}
+            uploadVideo={uploadVideo}
+          />
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <h3 className="mb-3 text-sm font-semibold">Үндсэн мэдээлэл</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="text-sm font-medium">Ангилал *</label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="mt-1 w-full rounded-lg border-gray-300"
+                  required
+                >
+                  <option value="">Сонгох...</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Таг</label>
+                <input
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="news, economy (таслалаар тусгаарлах)"
+                  className="mt-1 w-full rounded-lg border-gray-300"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Cover зураг</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onCoverChange}
+                  className="mt-1 w-full text-sm"
+                />
+                {coverPreview && (
+                  <img
+                    src={coverPreview}
+                    alt="Cover preview"
+                    className="mt-2 w-full rounded-lg object-cover h-32"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Төлөв</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="mt-1 w-full rounded-lg border-gray-300"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="featured"
+                  checked={isFeatured}
+                  onChange={(e) => setIsFeatured(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="featured" className="text-sm font-medium">
+                  Онцлох нийтлэл
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="breaking"
+                  checked={isBreaking}
+                  onChange={(e) => setIsBreaking(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="breaking" className="text-sm font-medium">
+                  Шуурхай мэдээ
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <h3 className="mb-2 text-sm font-semibold">SEO</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="text-sm font-medium">Slug *</label>
+                <input
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  placeholder="url-friendly-slug"
+                  className="mt-1 w-full rounded-lg border-gray-300 text-sm"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  URL: /articles/{slug || 'slug'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
