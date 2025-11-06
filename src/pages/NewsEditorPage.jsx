@@ -33,7 +33,7 @@ export default function NewsEditorPage() {
 
   const loadCategories = async () => {
     try {
-      const data = await apiRequest('/categories');
+      const data = await apiRequest('/api/categories');
       if (data.success) {
         setCategories(data.data.categories);
         if (data.data.categories.length > 0 && !categoryId) {
@@ -48,7 +48,7 @@ export default function NewsEditorPage() {
   const loadArticle = async (articleId) => {
     try {
       setLoading(true);
-      const data = await apiRequest(`/articles/${articleId}`);
+      const data = await apiRequest(`/api/articles/${articleId}`);
       if (data.success) {
         const article = data.data;
         setTitle(article.title);
@@ -209,7 +209,7 @@ export default function NewsEditorPage() {
 
       console.log('📤 Sending payload:', payload);
 
-      const url = id ? `/articles/${id}` : '/articles';
+      const url = id ? `/api/articles/${id}` : '/api/articles';
       const method = id ? 'PUT' : 'POST';
 
       const data = await apiRequest(url, {

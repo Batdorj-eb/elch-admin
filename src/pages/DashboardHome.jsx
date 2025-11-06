@@ -34,13 +34,13 @@ export default function DashboardHome() {
       setLoading(true);
 
       // Load stats (you'll need to create this endpoint)
-      const statsData = await apiRequest('/articles/stats');
+      const statsData = await apiRequest('/api/articles/stats');
       if (statsData.success) {
         setStats(statsData.data);
       }
 
       // Load recent articles
-      const articlesData = await apiRequest('/articles?limit=5&sort=created_at&order=desc');
+      const articlesData = await apiRequest('/api/articles?limit=5&sort=created_at&order=desc');
       if (articlesData.success) {
         setRecentArticles(articlesData.data.articles);
       }
