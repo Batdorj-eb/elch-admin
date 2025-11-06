@@ -18,7 +18,7 @@ export default function CategoriesPage() {
   const loadCategories = async () => {
     try {
       setLoading(true);
-      const data = await apiRequest('/api/categories');
+      const data = await apiRequest('/categories');
       if (data.success) {
         setCategories(data.data.categories);
       }
@@ -55,7 +55,7 @@ export default function CategoriesPage() {
     try {
       if (editingId) {
         // Update category
-        const data = await apiRequest(`/api/categories/${editingId}`, {
+        const data = await apiRequest(`/categories/${editingId}`, {
           method: 'PUT',
           body: JSON.stringify({
             name: name.trim(),
@@ -71,7 +71,7 @@ export default function CategoriesPage() {
         }
       } else {
         // Create new category
-        const data = await apiRequest('/api/categories', {
+        const data = await apiRequest('/categories', {
           method: 'POST',
           body: JSON.stringify({
             name: name.trim(),
@@ -105,7 +105,7 @@ export default function CategoriesPage() {
     }
 
     try {
-      const data = await apiRequest(`/api/categories/${id}`, {
+      const data = await apiRequest(`/categories/${id}`, {
         method: 'DELETE'
       });
 

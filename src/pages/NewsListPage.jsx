@@ -18,7 +18,7 @@ export default function NewsListPage() {
   const loadArticles = async () => {
     try {
       setLoading(true);
-      const data = await apiRequest('/api/articles?limit=100');
+      const data = await apiRequest('/articles?limit=100');
       if (data.success) {
         setArticles(data.data.articles);
       }
@@ -35,7 +35,7 @@ export default function NewsListPage() {
     }
 
     try {
-      const data = await apiRequest(`/api/articles/${id}`, {
+      const data = await apiRequest(`/articles/${id}`, {
         method: 'DELETE'
       });
 
