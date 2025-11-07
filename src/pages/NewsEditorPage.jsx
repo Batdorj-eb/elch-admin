@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Editor from '../components/Editor';
+import TinyMCEEditor from '../components/Editor';
 
 export default function NewsEditorPage() {
   const navigate = useNavigate();
@@ -295,12 +295,11 @@ export default function NewsEditorPage() {
             />
           </div>
 
-          <Editor
-            value={content}
-            onChange={setContent}
-            uploadImage={uploadImage}
-            uploadVideo={uploadVideo}
-          />
+            <TinyMCEEditor
+              value={content}
+              onChange={setContent}
+              height={600}
+            />
         </div>
 
         {/* Sidebar */}
