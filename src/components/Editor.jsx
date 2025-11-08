@@ -69,6 +69,7 @@ function MyCustomUploadAdapterPlugin(editor, uploadFunction) {
 
 export default function Editor({ value, onChange, placeholder = "Контент бичих...", uploadImage }) {
   const editorConfig = {
+    licenseKey: 'GPL', // 🔥 Free GPL license
     toolbar: {
       items: [
         'undo', 'redo',
