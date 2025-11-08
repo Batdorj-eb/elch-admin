@@ -16,9 +16,12 @@ import {
   ImageStyle,
   ImageToolbar,
   ImageUpload,
+  ImageResize,
   MediaEmbed,
   Table,
   TableToolbar,
+  TableProperties,
+  TableCellProperties,
   Alignment,
   FontSize,
   FontFamily,
@@ -31,6 +34,13 @@ import {
   HorizontalLine,
   Indent,
   IndentBlock,
+  PasteFromOffice,
+  RemoveFormat,
+  Highlight,
+  Subscript,
+  Superscript,
+  SpecialCharacters,
+  SpecialCharactersEssentials,
 } from 'ckeditor5';
 
 import 'ckeditor5/ckeditor5.css';
@@ -69,6 +79,8 @@ export default function Editor({ value, onChange, placeholder = "Контент 
         '|',
         'bold', 'italic', 'underline', 'strikethrough',
         '|',
+        'subscript', 'superscript', 'code',
+        '|',
         'link', 'uploadImage', 'mediaEmbed', 'blockQuote', 'codeBlock',
         '|',
         'alignment',
@@ -77,7 +89,9 @@ export default function Editor({ value, onChange, placeholder = "Контент 
         '|',
         'indent', 'outdent',
         '|',
-        'insertTable', 'horizontalLine',
+        'insertTable', 'horizontalLine', 'specialCharacters',
+        '|',
+        'highlight', 'removeFormat',
       ],
     },
     plugins: [
@@ -96,9 +110,12 @@ export default function Editor({ value, onChange, placeholder = "Контент 
       ImageStyle,
       ImageToolbar,
       ImageUpload,
+      ImageResize,
       MediaEmbed,
       Table,
       TableToolbar,
+      TableProperties,
+      TableCellProperties,
       Alignment,
       FontSize,
       FontFamily,
@@ -111,6 +128,13 @@ export default function Editor({ value, onChange, placeholder = "Контент 
       HorizontalLine,
       Indent,
       IndentBlock,
+      PasteFromOffice,
+      RemoveFormat,
+      Highlight,
+      Subscript,
+      Superscript,
+      SpecialCharacters,
+      SpecialCharactersEssentials,
     ],
     heading: {
       options: [
@@ -119,6 +143,8 @@ export default function Editor({ value, onChange, placeholder = "Контент 
         { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
         { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' },
         { model: 'heading4', view: 'h4', title: 'Heading 4', class: 'ck-heading_heading4' },
+        { model: 'heading5', view: 'h5', title: 'Heading 5', class: 'ck-heading_heading5' },
+        { model: 'heading6', view: 'h6', title: 'Heading 6', class: 'ck-heading_heading6' },
       ],
     },
     image: {
@@ -129,10 +155,40 @@ export default function Editor({ value, onChange, placeholder = "Контент 
         '|',
         'toggleImageCaption',
         'imageTextAlternative',
+        '|',
+        'linkImage'
       ],
+      resizeOptions: [
+        {
+          name: 'resizeImage:original',
+          label: 'Original',
+          value: null
+        },
+        {
+          name: 'resizeImage:25',
+          label: '25%',
+          value: '25'
+        },
+        {
+          name: 'resizeImage:50',
+          label: '50%',
+          value: '50'
+        },
+        {
+          name: 'resizeImage:75',
+          label: '75%',
+          value: '75'
+        }
+      ]
     },
     table: {
-      contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'],
+      contentToolbar: [
+        'tableColumn', 
+        'tableRow', 
+        'mergeTableCells',
+        'tableProperties',
+        'tableCellProperties'
+      ],
     },
     placeholder: placeholder,
     extraPlugins: uploadImage ? [
