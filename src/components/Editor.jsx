@@ -1,73 +1,156 @@
-// src/components/editor/TinyMCEEditor.jsx
-import React, { useRef } from 'react';
-import { Editor } from '@tinymce/tinymce-react';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import {
+  ClassicEditor,
+  Bold,
+  Essentials,
+  Italic,
+  Mention,
+  Paragraph,
+  Undo,
+  Heading,
+  Link,
+  List,
+  BlockQuote,
+  Image,
+  ImageCaption,
+  ImageStyle,
+  ImageToolbar,
+  ImageUpload,
+  MediaEmbed,
+  Table,
+  TableToolbar,
+  Alignment,
+  FontSize,
+  FontFamily,
+  FontColor,
+  FontBackgroundColor,
+  Strikethrough,
+  Underline,
+  Code,
+  CodeBlock,
+  HorizontalLine,
+  Indent,
+  IndentBlock,
+} from 'ckeditor5';
 
-export default function TinyMCEEditor({ value, onChange, height = 500 }) {
-  const editorRef = useRef(null);
+import 'ckeditor5/ckeditor5.css';
+
+// Custom Upload Adapter for image uploads
+class MyUploadAdapter {
+  constructor(loader, uploadFunction) {
+    this.loader = loader;
+    this.uploadFunction = uploadFunction;
+  }
+
+  upload() {
+    return this.loader.file.then(file => this.uploadFunction(file));
+  }
+
+  abort() {
+    // Handle abort if needed
+  }
+}
+
+function MyCustomUploadAdapterPlugin(editor, uploadFunction) {
+  editor.plugins.get('FileRepository').createUploadAdapter = (loader) => {
+    return new MyUploadAdapter(loader, uploadFunction);
+  };
+}
+
+export default function Editor({ value, onChange, placeholder = "Контент бичих...", uploadImage }) {
+  const editorConfig = {
+    toolbar: {
+      items: [
+        'undo', 'redo',
+        '|',
+        'heading',
+        '|',
+        'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor',
+        '|',
+        'bold', 'italic', 'underline', 'strikethrough',
+        '|',
+        'link', 'uploadImage', 'mediaEmbed', 'blockQuote', 'codeBlock',
+        '|',
+        'alignment',
+        '|',
+        'bulletedList', 'numberedList',
+        '|',
+        'indent', 'outdent',
+        '|',
+        'insertTable', 'horizontalLine',
+      ],
+    },
+    plugins: [
+      Bold,
+      Essentials,
+      Italic,
+      Mention,
+      Paragraph,
+      Undo,
+      Heading,
+      Link,
+      List,
+      BlockQuote,
+      Image,
+      ImageCaption,
+      ImageStyle,
+      ImageToolbar,
+      ImageUpload,
+      MediaEmbed,
+      Table,
+      TableToolbar,
+      Alignment,
+      FontSize,
+      FontFamily,
+      FontColor,
+      FontBackgroundColor,
+      Strikethrough,
+      Underline,
+      Code,
+      CodeBlock,
+      HorizontalLine,
+      Indent,
+      IndentBlock,
+    ],
+    heading: {
+      options: [
+        { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
+        { model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1' },
+        { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
+        { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' },
+        { model: 'heading4', view: 'h4', title: 'Heading 4', class: 'ck-heading_heading4' },
+      ],
+    },
+    image: {
+      toolbar: [
+        'imageStyle:inline',
+        'imageStyle:block',
+        'imageStyle:side',
+        '|',
+        'toggleImageCaption',
+        'imageTextAlternative',
+      ],
+    },
+    table: {
+      contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'],
+    },
+    placeholder: placeholder,
+    extraPlugins: uploadImage ? [
+      (editor) => MyCustomUploadAdapterPlugin(editor, uploadImage)
+    ] : [],
+  };
 
   return (
-    <Editor
-      apiKey="sl890g62bh10t80q6za9hiihczgedrq75rjglz6wyzp34itu" // Free version
-      onInit={(evt, editor) => editorRef.current = editor}
-      value={value}
-      onEditorChange={onChange}
-      init={{
-        height: height,
-        menubar: true,
-        plugins: [
-          'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-          'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-          'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount',
-          'paste', // Word paste support
-        ],
-        toolbar: 
-          'undo redo | blocks | bold italic forecolor backcolor | ' +
-          'alignleft aligncenter alignright alignjustify | ' +
-          'bullist numlist outdent indent | removeformat | help | ' +
-          'link image media | code',
-        content_style: 
-          'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
-        
-        // 🔥 WORD PASTE ТОХИРГОО
-        paste_data_images: true,
-        paste_as_text: false,
-        paste_word_valid_elements: 'b,strong,i,em,h1,h2,h3,h4,h5,h6,p,ul,ol,li,a[href],span[style],blockquote',
-        paste_retain_style_properties: 'color background-color font-size font-weight text-align',
-        paste_merge_formats: true,
-        
-        // Automatic cleanup
-        paste_preprocess: function(plugin, args) {
-          console.log('Pasting content from Word...');
-        },
-        
-        // Image upload
-        images_upload_handler: async (blobInfo, progress) => {
-          const formData = new FormData();
-          formData.append('image', blobInfo.blob(), blobInfo.filename());
-
-          try {
-            const token = localStorage.getItem('admin_token');
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/upload/image`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              },
-              body: formData
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-              return data.data.url;
-            } else {
-              throw new Error(data.message || 'Upload failed');
-            }
-          } catch (error) {
-            console.error('Image upload error:', error);
-            throw error;
-          }
-        },
-      }}
-    />
+    <div className="editor-container">
+      <CKEditor
+        editor={ClassicEditor}
+        config={editorConfig}
+        data={value || ''}
+        onChange={(event, editor) => {
+          const data = editor.getData();
+          onChange(data);
+        }}
+      />
+    </div>
   );
 }

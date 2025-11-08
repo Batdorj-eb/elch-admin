@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import TinyMCEEditor from '../components/Editor';
+import Editor from '../components/Editor'; // 🔥 Changed from TinyMCEEditor
 
 export default function NewsEditorPage() {
   const navigate = useNavigate();
@@ -16,8 +16,8 @@ export default function NewsEditorPage() {
   const [slug, setSlug] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [tags, setTags] = useState('');
-  const [coverImage, setCoverImage] = useState(null); // Actual File object
-  const [coverPreview, setCoverPreview] = useState(''); // Preview URL
+  const [coverImage, setCoverImage] = useState(null);
+  const [coverPreview, setCoverPreview] = useState('');
   const [content, setContent] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [status, setStatus] = useState('draft');
@@ -90,9 +90,9 @@ export default function NewsEditorPage() {
   const onCoverChange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    setCoverImage(file); // Store actual File
+    setCoverImage(file);
     const preview = URL.createObjectURL(file);
-    setCoverPreview(preview); // Store preview URL
+    setCoverPreview(preview);
   };
 
   // 🔥 Image upload helper for CKEditor
@@ -124,7 +124,8 @@ export default function NewsEditorPage() {
       
       if (data.success && data.data && data.data.url) {
         console.log('✅ [NewsEditorPage] Image uploaded successfully:', data.data.url);
-        return data.data.url;
+        // 🔥 CKEditor expects { default: url } format
+        return { default: data.data.url };
       }
       
       throw new Error(data.message || 'Upload failed');
@@ -135,33 +136,7 @@ export default function NewsEditorPage() {
     }
   }
 
-  // 🔥 Video upload helper
-  async function uploadVideo(file) {
-    try {
-      const formData = new FormData();
-      formData.append('video', file);
-      
-      const response = await fetch(`${API_URL}/upload/video`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-        },
-        body: formData
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        return data.data.url;
-      }
-      throw new Error(data.message || 'Upload failed');
-    } catch (err) {
-      console.error('Video upload failed:', err);
-      throw err;
-    }
-  }
-
   const handleSave = async () => {
-    // Validation
     if (!title.trim()) {
       setError('Гарчиг оруулна уу.');
       return;
@@ -183,14 +158,13 @@ export default function NewsEditorPage() {
     setError('');
 
     try {
-      // 🔥 FIX: Upload cover image FIRST if new file selected
       let uploadedCoverUrl = '';
       if (coverImage && coverImage instanceof File) {
         console.log('📤 Uploading cover image...');
-        uploadedCoverUrl = await uploadImage(coverImage);
+        const result = await uploadImage(coverImage);
+        uploadedCoverUrl = result.default; // Extract URL from CKEditor format
         console.log('✅ Cover uploaded:', uploadedCoverUrl);
       } else if (coverPreview && !coverPreview.startsWith('blob:')) {
-        // Use existing cover URL if editing
         uploadedCoverUrl = coverPreview;
       }
 
@@ -204,7 +178,7 @@ export default function NewsEditorPage() {
         status,
         is_featured: isFeatured,
         is_breaking: isBreaking,
-        cover_image: uploadedCoverUrl || '' // Real URL or empty
+        cover_image: uploadedCoverUrl || ''
       };
 
       console.log('📤 Sending payload:', payload);
@@ -295,11 +269,15 @@ export default function NewsEditorPage() {
             />
           </div>
 
-            <TinyMCEEditor
+          {/* 🔥 CKEditor with image upload support */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <Editor 
               value={content}
               onChange={setContent}
-              height={600}
+              uploadImage={uploadImage}
+              placeholder="Контент бичих..."
             />
+          </div>
         </div>
 
         {/* Sidebar */}
