@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import Editor from '../components/Editor'; // 🔥 Changed from TinyMCEEditor
+import Editor from '../components/Editor'; 
 
 export default function NewsEditorPage() {
   const navigate = useNavigate();
