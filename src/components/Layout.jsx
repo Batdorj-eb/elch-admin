@@ -43,6 +43,9 @@ export default function Layout({ children }) {
             <SidebarLink to="/users" active={isActive('/users')}>
               Хэрэглэгчид / Эрх
             </SidebarLink>
+            <SidebarLink to="/banners" active={isActive('/banners')}>
+               Banner удирдлага
+            </SidebarLink>
           </nav>
           <div className="mt-auto">
             {user ? (

@@ -9,6 +9,7 @@ import NewsListPage from './pages/NewsListPage';
 import NewsEditorPage from './pages/NewsEditorPage';
 import CategoriesPage from './pages/CategoriesPage';
 import UsersPage from './pages/UsersPage';
+import BannerManagement from './pages/BannerManagement';
 
 function ProtectedShell({ roles }) {
   const { user } = useAuth();
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="news/new" element={<NewsEditorPage />} />
             <Route path="news/:id/edit" element={<NewsEditorPage />} />
             <Route path="categories" element={<CategoriesPage />} />
+            <Route path="banners" element={<BannerManagement />} />
           </Route>
 
           {/* Зөвхөн админ */}
