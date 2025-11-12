@@ -23,7 +23,6 @@ export default function NewsEditorPage() {
   const [status, setStatus] = useState('draft');
   const [isFeatured, setIsFeatured] = useState(false);
   const [isBreaking, setIsBreaking] = useState(false);
-  const [showAuthor, setShowAuthor] = useState(true); // ✅ Зохиогчийн нэр харуулах
 
   useEffect(() => {
     loadCategories();
@@ -61,7 +60,6 @@ export default function NewsEditorPage() {
         setStatus(article.status);
         setIsFeatured(article.is_featured);
         setIsBreaking(article.is_breaking);
-        setShowAuthor(article.show_author !== 0); // ✅ Load show_author
         if (article.cover_image) {
           setCoverPreview(article.cover_image);
         }
@@ -180,7 +178,6 @@ export default function NewsEditorPage() {
         status,
         is_featured: isFeatured,
         is_breaking: isBreaking,
-        show_author: showAuthor ? 1 : 0, // ✅ Add show_author to payload
         cover_image: uploadedCoverUrl || ''
       };
 
@@ -344,25 +341,6 @@ export default function NewsEditorPage() {
                 </select>
               </div>
 
-              {/* ✅ Зохиогчийн нэр харуулах checkbox */}
-              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <input
-                  type="checkbox"
-                  id="show-author"
-                  checked={showAuthor}
-                  onChange={(e) => setShowAuthor(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <div>
-                  <label htmlFor="show-author" className="text-sm font-medium text-gray-900 cursor-pointer">
-                    ✍️ Зохиогчийн нэр харуулах
-                  </label>
-                  <p className="text-xs text-gray-600 mt-0.5">
-                    Идэвхжүүлвэл мэдээний зохиогчийн нэр харагдана
-                  </p>
-                </div>
-              </div>
-
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -372,7 +350,7 @@ export default function NewsEditorPage() {
                   className="rounded border-gray-300"
                 />
                 <label htmlFor="featured" className="text-sm font-medium">
-                  ⭐ Онцлох нийтлэл
+                  Онцлох нийтлэл
                 </label>
               </div>
 
@@ -385,7 +363,7 @@ export default function NewsEditorPage() {
                   className="rounded border-gray-300"
                 />
                 <label htmlFor="breaking" className="text-sm font-medium">
-                  🔥 Шуурхай мэдээ
+                  Шуурхай мэдээ
                 </label>
               </div>
             </div>
