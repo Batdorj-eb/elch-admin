@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export default function UserManagement() {
-  const { apiRequest, user: currentUser } = useAuth();
+  const { apiRequest, user: currentUser, API_URL } = useAuth();
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +27,46 @@ export default function UserManagement() {
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [uploading, setUploading] = useState(false);
+
+  // Image upload
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const uploadFormData = new FormData();
+    uploadFormData.append('image', file);
+
+    try {
+      setUploading(true);
+      
+      const token = localStorage.getItem('admin_token');
+      const response = await fetch(`${API_URL}/upload/image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: uploadFormData
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setFormData(prev => ({
+          ...prev,
+          avatar: data.data.url
+        }));
+        alert('Зураг амжилттай upload хийгдлээ!');
+      } else {
+        throw new Error(data.message || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Зураг upload хийх алдаа:', error);
+      alert('Зураг upload хийхэд алдаа гарлаа');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // Fetch users
   const fetchUsers = async () => {
@@ -479,18 +519,40 @@ export default function UserManagement() {
                   </select>
                 </div>
 
-                {/* Avatar URL */}
+                {/* Avatar Upload */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Зураг (URL)
+                    Профайл зураг
                   </label>
                   <input
-                    type="url"
-                    value={formData.avatar}
-                    onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5"
-                    placeholder="https://..."
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    disabled={uploading}
                   />
+                  {uploading && (
+                    <p className="text-sm text-blue-600 mt-2 flex items-center gap-2">
+                      <span className="animate-spin">⏳</span>
+                      Уншиж байна...
+                    </p>
+                  )}
+                  {formData.avatar && (
+                    <div className="mt-3 flex items-center gap-3">
+                      <img
+                        src={formData.avatar}
+                        alt="Avatar preview"
+                        className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, avatar: '' })}
+                        className="text-sm text-red-600 hover:text-red-800"
+                      >
+                        Устгах
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
