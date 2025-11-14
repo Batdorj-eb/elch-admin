@@ -62,8 +62,9 @@ export default function NewsEditorPage() {
         setIsFeatured(article.is_featured);
         setIsBreaking(article.is_breaking);
         setShowAuthor(article.show_author !== 0);
-        if (article.cover_image) {
-          setCoverPreview(article.cover_image);
+        // ✅ Support both field names
+        if (article.featured_image || article.cover_image) {
+          setCoverPreview(article.featured_image || article.cover_image);
         }
       }
     } catch (err) {
@@ -181,7 +182,7 @@ export default function NewsEditorPage() {
         is_featured: isFeatured,
         is_breaking: isBreaking,
         show_author: showAuthor ? 1 : 0, 
-        cover_image: uploadedCoverUrl || ''
+        featured_image: uploadedCoverUrl || '' // ✅ FIXED: cover_image → featured_image
       };
 
       console.log('📤 Sending payload:', payload);
@@ -315,8 +316,12 @@ export default function NewsEditorPage() {
                 />
               </div>
 
+              {/* ✅ Featured Image (Cover зураг) */}
               <div>
-                <label className="text-sm font-medium">Cover зураг</label>
+                <label className="text-sm font-medium">Featured Image (Cover зураг) *</label>
+                <p className="text-xs text-gray-500 mb-1">
+                  Энэ зураг Facebook share дээр харагдана
+                </p>
                 <input
                   type="file"
                   accept="image/*"
@@ -324,11 +329,23 @@ export default function NewsEditorPage() {
                   className="mt-1 w-full text-sm"
                 />
                 {coverPreview && (
-                  <img
-                    src={coverPreview}
-                    alt="Cover preview"
-                    className="mt-2 w-full rounded-lg object-cover h-32"
-                  />
+                  <div className="mt-2 relative">
+                    <img
+                      src={coverPreview}
+                      alt="Cover preview"
+                      className="w-full rounded-lg object-cover h-32 border-2 border-green-200"
+                    />
+                    <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-2 py-0.5 rounded">
+                      ✅ Uploaded
+                    </div>
+                  </div>
+                )}
+                {!coverPreview && (
+                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-xs text-yellow-800">
+                      ⚠️ Featured image байхгүй бол Facebook дээр зураг харагдахгүй
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -390,6 +407,7 @@ export default function NewsEditorPage() {
               </div>
             </div>
           </div>
+          
           <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <input
               type="checkbox"
