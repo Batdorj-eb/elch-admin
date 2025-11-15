@@ -21,9 +21,11 @@ export default function NewsEditorPage() {
   const [content, setContent] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [status, setStatus] = useState('draft');
-  const [isFeatured, setIsFeatured] = useState(false);
   const [isBreaking, setIsBreaking] = useState(false);
   const [showAuthor, setShowAuthor] = useState(true);
+
+  const [featuredPriority, setFeaturedPriority] = useState(null); // null = энгийн мэдээ
+  const [takenSlots, setTakenSlots] = useState({}); // Эзлэгдсэн slot-ууд
 
   useEffect(() => {
     loadCategories();
@@ -46,6 +48,36 @@ export default function NewsEditorPage() {
     }
   };
 
+  // loadCategories дараа нэмэх
+  const checkTakenSlots = async () => {
+    const slots = {};
+    
+    for (let priority = 1; priority <= 5; priority++) {
+      try {
+        const data = await apiRequest(`/articles/featured/check/${priority}`);
+        if (data.success && data.data.taken) {
+          // Өөрийн мэдээ биш бол taken гэж тэмдэглэх
+          if (data.data.article?.id !== parseInt(id)) {
+            slots[priority] = data.data.article;
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to check slot ${priority}:`, err);
+      }
+    }
+    
+    setTakenSlots(slots);
+  };
+
+  // useEffect дээр нэмэх
+  useEffect(() => {
+    loadCategories();
+    checkTakenSlots(); // ✅ Slot шалгах
+    if (id) {
+      loadArticle(id);
+    }
+  }, [id]);
+
   const loadArticle = async (articleId) => {
     try {
       setLoading(true);
@@ -59,7 +91,7 @@ export default function NewsEditorPage() {
         setContent(article.content);
         setExcerpt(article.excerpt || '');
         setStatus(article.status);
-        setIsFeatured(article.is_featured);
+        setFeaturedPriority(article.is_featured || null);
         setIsBreaking(article.is_breaking);
         setShowAuthor(article.show_author !== 0);
         // ✅ Support both field names
@@ -179,7 +211,7 @@ export default function NewsEditorPage() {
         excerpt: excerpt || '',
         tags: tags || '',
         status,
-        is_featured: isFeatured,
+        is_featured: featuredPriority, 
         is_breaking: isBreaking,
         show_author: showAuthor ? 1 : 0, 
         featured_image: uploadedCoverUrl || '' // ✅ FIXED: cover_image → featured_image
@@ -361,17 +393,68 @@ export default function NewsEditorPage() {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="featured"
-                  checked={isFeatured}
-                  onChange={(e) => setIsFeatured(e.target.checked)}
-                  className="rounded border-gray-300"
-                />
-                <label htmlFor="featured" className="text-sm font-medium">
-                  Онцлох нийтлэл
+              {/* ✅ Featured Priority Selector */}
+              <div>
+                <label className="text-sm font-semibold mb-3 block">Онцлох байрлал</label>
+                
+                {/* ✅ НЭМЭХ: Option 0 - Энгийн мэдээ */}
+                <label className="flex items-start p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition mb-2">
+                  <input
+                    type="checkbox"
+                    checked={featuredPriority === null}
+                    onChange={() => setFeaturedPriority(null)}
+                    className="mt-1 mr-3"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">Энгийн мэдээ</div>
+                    <div className="text-xs text-gray-500">Онцлохгүй жирийн мэдээ</div>
+                  </div>
                 </label>
+
+                {/* Онцлох options (1-5) */}
+                {[1, 2, 3, 4, 5].map((priority) => {
+                  const isTaken = takenSlots[priority];
+                  const isCurrentlySelected = featuredPriority === priority;
+                  
+                  return (
+                    <label
+                      key={priority}
+                      className={`
+                        flex items-start p-3 border rounded-lg transition mb-2
+                        ${isCurrentlySelected ? 'bg-blue-50 border-blue-300' : 'cursor-pointer hover:bg-gray-50'}
+                      `}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isCurrentlySelected}
+                        onChange={() => setFeaturedPriority(isCurrentlySelected ? null : priority)}
+                        className="mt-1 mr-3"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">
+                          {priority === 1 ? '⭐ Ерөнхий онцлох (1-р)' : `✓ ${priority}-р онцлох`}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {priority === 1 ? 'Хамгийн том хэмжээтэй харагдана' : 'Дэд хэмжээтэй харагдана'}
+                        </div>
+                        {isTaken && !isCurrentlySelected && (
+                          <div className="text-xs mt-1">
+                            <div className="text-orange-600 mb-1">
+                              ⚠️ Эзлэгдсэн: "{isTaken.title}"
+                            </div>
+                            <div className="text-blue-600">
+                              💡 Сонговол өмнөх мэдээ автоматаар энгийн мэдээ болно
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Зөвхөн 1 сонголт хийх боломжтой
+                </p>
               </div>
 
               <div className="flex items-center gap-2">
