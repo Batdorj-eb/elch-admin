@@ -46,6 +46,9 @@ export default function Layout({ children }) {
             <SidebarLink to="/banners" active={isActive('/banners')}>
                Banner удирдлага
             </SidebarLink>
+            <SidebarLink to="/submissions" active={isActive('/submissions')}>
+               Ардын элч
+            </SidebarLink>
           </nav>
           <div className="mt-auto">
             {user ? (
