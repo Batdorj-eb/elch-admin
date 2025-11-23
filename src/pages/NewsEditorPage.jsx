@@ -24,23 +24,51 @@ export default function NewsEditorPage() {
   const [isBreaking, setIsBreaking] = useState(false);
   const [showAuthor, setShowAuthor] = useState(true);
 
-  const [featuredPriority, setFeaturedPriority] = useState(null); // null = энгийн мэдээ
-  const [takenSlots, setTakenSlots] = useState({}); // Эзлэгдсэн slot-ууд
+  const [featuredPriority, setFeaturedPriority] = useState(null);
+  const [takenSlots, setTakenSlots] = useState({});
 
   useEffect(() => {
     loadCategories();
+    checkTakenSlots();
     if (id) {
       loadArticle(id);
     }
   }, [id]);
 
+  // ✅ Категориудыг тодорхой дарааллаар эрэмбэлэх
   const loadCategories = async () => {
     try {
       const data = await apiRequest('/categories');
       if (data.success) {
-        setCategories(data.data.categories);
-        if (data.data.categories.length > 0 && !categoryId) {
-          setCategoryId(data.data.categories[0].id);
+        // ✅ Тодорхой дарааллаар эрэмбэлэх
+        const categoryOrder = [
+          'Улс төр',
+          'Эдийн засаг', 
+          'Нийгэм',
+          'Ардын элч',
+          'Технологи',
+          'Факт шалгалт',
+          'Поп мэдээ',
+          'Дэлхийд',
+          '126 ирц',
+          'Бусад'
+        ];
+
+        const sortedCategories = data.data.categories.sort((a, b) => {
+          const indexA = categoryOrder.indexOf(a.name);
+          const indexB = categoryOrder.indexOf(b.name);
+          
+          // Жагсаалтад байхгүй категориудыг хамгийн сүүлд харуулах
+          if (indexA === -1) return 1;
+          if (indexB === -1) return -1;
+          
+          return indexA - indexB;
+        });
+
+        setCategories(sortedCategories);
+        
+        if (sortedCategories.length > 0 && !categoryId) {
+          setCategoryId(sortedCategories[0].id);
         }
       }
     } catch (err) {
@@ -48,7 +76,6 @@ export default function NewsEditorPage() {
     }
   };
 
-  // loadCategories дараа нэмэх
   const checkTakenSlots = async () => {
     const slots = {};
     
@@ -56,7 +83,6 @@ export default function NewsEditorPage() {
       try {
         const data = await apiRequest(`/articles/featured/check/${priority}`);
         if (data.success && data.data.taken) {
-          // Өөрийн мэдээ биш бол taken гэж тэмдэглэх
           if (data.data.article?.id !== parseInt(id)) {
             slots[priority] = data.data.article;
           }
@@ -68,15 +94,6 @@ export default function NewsEditorPage() {
     
     setTakenSlots(slots);
   };
-
-  // useEffect дээр нэмэх
-  useEffect(() => {
-    loadCategories();
-    checkTakenSlots(); // ✅ Slot шалгах
-    if (id) {
-      loadArticle(id);
-    }
-  }, [id]);
 
   const loadArticle = async (articleId) => {
     try {
@@ -94,7 +111,6 @@ export default function NewsEditorPage() {
         setFeaturedPriority(article.is_featured || null);
         setIsBreaking(article.is_breaking);
         setShowAuthor(article.show_author !== 0);
-        // ✅ Support both field names
         if (article.featured_image || article.cover_image) {
           setCoverPreview(article.featured_image || article.cover_image);
         }
@@ -130,7 +146,6 @@ export default function NewsEditorPage() {
     setCoverPreview(preview);
   };
 
-  // 🔥 Image upload helper for CKEditor
   async function uploadImage(file) {
     try {
       console.log('📤 [NewsEditorPage] Starting upload:', {
@@ -159,7 +174,6 @@ export default function NewsEditorPage() {
       
       if (data.success && data.data && data.data.url) {
         console.log('✅ [NewsEditorPage] Image uploaded successfully:', data.data.url);
-        // 🔥 CKEditor expects { default: url } format
         return { default: data.data.url };
       }
       
@@ -197,7 +211,7 @@ export default function NewsEditorPage() {
       if (coverImage && coverImage instanceof File) {
         console.log('📤 Uploading cover image...');
         const result = await uploadImage(coverImage);
-        uploadedCoverUrl = result.default; // Extract URL from CKEditor format
+        uploadedCoverUrl = result.default;
         console.log('✅ Cover uploaded:', uploadedCoverUrl);
       } else if (coverPreview && !coverPreview.startsWith('blob:')) {
         uploadedCoverUrl = coverPreview;
@@ -214,7 +228,7 @@ export default function NewsEditorPage() {
         is_featured: featuredPriority, 
         is_breaking: isBreaking,
         show_author: showAuthor ? 1 : 0, 
-        featured_image: uploadedCoverUrl || '' // ✅ FIXED: cover_image → featured_image
+        featured_image: uploadedCoverUrl || ''
       };
 
       console.log('📤 Sending payload:', payload);
@@ -305,7 +319,6 @@ export default function NewsEditorPage() {
             />
           </div>
 
-          {/* 🔥 CKEditor with image upload support */}
           <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <Editor 
               value={content}
@@ -348,7 +361,6 @@ export default function NewsEditorPage() {
                 />
               </div>
 
-              {/* ✅ Featured Image (Cover зураг) */}
               <div>
                 <label className="text-sm font-medium">Featured Image (Cover зураг) *</label>
                 <p className="text-xs text-gray-500 mb-1">
@@ -393,11 +405,9 @@ export default function NewsEditorPage() {
                 </select>
               </div>
 
-              {/* ✅ Featured Priority Selector */}
               <div>
                 <label className="text-sm font-semibold mb-3 block">Онцлох байрлал</label>
                 
-                {/* ✅ НЭМЭХ: Option 0 - Энгийн мэдээ */}
                 <label className="flex items-start p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition mb-2">
                   <input
                     type="checkbox"
@@ -411,7 +421,6 @@ export default function NewsEditorPage() {
                   </div>
                 </label>
 
-                {/* Онцлох options (1-5) */}
                 {[1, 2, 3, 4, 5].map((priority) => {
                   const isTaken = takenSlots[priority];
                   const isCurrentlySelected = featuredPriority === priority;
