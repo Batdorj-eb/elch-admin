@@ -195,7 +195,7 @@ export default function NewsListPage() {
                       </span>
                     </td>
                     <td className="p-3 text-gray-600">
-                      {article.view_count || 0}
+                      {article.views || 0}
                     </td>
                     <td className="p-3 text-gray-600">
                       {formatDate(article.created_at)}
