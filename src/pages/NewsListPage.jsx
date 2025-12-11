@@ -18,7 +18,7 @@ export default function NewsListPage() {
   const loadArticles = async () => {
     try {
       setLoading(true);
-      const data = await apiRequest('/articles?limit=100');
+      const data = await apiRequest('/articles?limit=100&status=all');
       if (data.success) {
         setArticles(data.data.articles);
       }
@@ -91,6 +91,10 @@ export default function NewsListPage() {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const getDisplayDate = (article) => {
+    return article.published_at || article.created_at;
   };
 
   if (loading) {
@@ -198,7 +202,17 @@ export default function NewsListPage() {
                       {article.views || 0}
                     </td>
                     <td className="p-3 text-gray-600">
-                      {formatDate(article.created_at)}
+                      <div>{formatDate(getDisplayDate(article))}</div>
+                      {article.status === 'scheduled' && article.published_at && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          ⏰ {new Date(article.published_at).toLocaleString('mn-MN', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      )}
                     </td>
                     <td className="space-x-2 p-3 text-right">
                       <button

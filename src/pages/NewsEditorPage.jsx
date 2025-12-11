@@ -26,6 +26,7 @@ export default function NewsEditorPage() {
 
   const [featuredPriority, setFeaturedPriority] = useState(null);
   const [takenSlots, setTakenSlots] = useState({});
+  const [publishedAt, setPublishedAt] = useState('');
 
   useEffect(() => {
     loadCategories();
@@ -35,12 +36,10 @@ export default function NewsEditorPage() {
     }
   }, [id]);
 
-  // ✅ Категориудыг тодорхой дарааллаар эрэмбэлэх
   const loadCategories = async () => {
     try {
       const data = await apiRequest('/categories');
       if (data.success) {
-        // ✅ Тодорхой дарааллаар эрэмбэлэх
         const categoryOrder = [
           'Улс төр',
           'Эдийн засаг', 
@@ -58,7 +57,6 @@ export default function NewsEditorPage() {
           const indexA = categoryOrder.indexOf(a.name);
           const indexB = categoryOrder.indexOf(b.name);
           
-          // Жагсаалтад байхгүй категориудыг хамгийн сүүлд харуулах
           if (indexA === -1) return 1;
           if (indexB === -1) return -1;
           
@@ -95,33 +93,37 @@ export default function NewsEditorPage() {
     setTakenSlots(slots);
   };
 
-  const loadArticle = async (articleId) => {
-    try {
-      setLoading(true);
-      const data = await apiRequest(`/articles/${articleId}`);
-      if (data.success) {
-        const article = data.data;
-        setTitle(article.title);
-        setSlug(article.slug);
-        setCategoryId(article.category_id);
-        setTags(article.tags || '');
-        setContent(article.content);
-        setExcerpt(article.excerpt || '');
-        setStatus(article.status);
-        setFeaturedPriority(article.is_featured || null);
-        setIsBreaking(article.is_breaking);
-        setShowAuthor(article.show_author !== 0);
-        if (article.featured_image || article.cover_image) {
-          setCoverPreview(article.featured_image || article.cover_image);
-        }
+const loadArticle = async (articleId) => {
+  try {
+    setLoading(true);
+    const data = await apiRequest(`/articles/${articleId}`);
+    if (data.success) {
+      const article = data.data;
+      setTitle(article.title);
+      setSlug(article.slug);
+      setCategoryId(article.category_id);
+      setTags(article.tags || '');
+      setContent(article.content);
+      setExcerpt(article.excerpt || '');
+      setStatus(article.status);
+      setFeaturedPriority(article.is_featured || null);
+      setIsBreaking(article.is_breaking);
+      setShowAuthor(article.show_author !== 0);
+      if (article.featured_image || article.cover_image) {
+        setCoverPreview(article.featured_image || article.cover_image);
       }
-    } catch (err) {
-      setError('Нийтлэл ачаалахад алдаа гарлаа.');
-      console.error('Failed to load article:', err);
-    } finally {
-      setLoading(false);
+      if (article.published_at) {
+        const date = new Date(article.published_at);
+        setPublishedAt(date.toISOString().slice(0, 16));
+      }
     }
-  };
+  } catch (err) {
+    setError('Нийтлэл ачаалахад алдаа гарлаа.');
+    console.error('Failed to load article:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const toSlug = (s) =>
     s
@@ -228,7 +230,8 @@ export default function NewsEditorPage() {
         is_featured: featuredPriority, 
         is_breaking: isBreaking,
         show_author: showAuthor ? 1 : 0, 
-        featured_image: uploadedCoverUrl || ''
+        featured_image: uploadedCoverUrl || '',
+        published_at: publishedAt || null
       };
 
       console.log('📤 Sending payload:', payload);
@@ -403,6 +406,27 @@ export default function NewsEditorPage() {
                   <option value="draft">Draft</option>
                   <option value="published">Published</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Нийтлэх огноо</label>
+                <input
+                  type="datetime-local"
+                  value={publishedAt}
+                  onChange={(e) => setPublishedAt(e.target.value)}
+                  className="mt-1 w-full rounded-lg border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {publishedAt ? (
+                    new Date(publishedAt) > new Date() ? (
+                      <span className="text-blue-600">⏰ Төлөвлөгдсөн: {new Date(publishedAt).toLocaleString('mn-MN')}</span>
+                    ) : (
+                      <span className="text-green-600">✅ Нийтлэгдсэн: {new Date(publishedAt).toLocaleString('mn-MN')}</span>
+                    )
+                  ) : (
+                    <span>Хоосон үлдээвэл одоогийн цаг ашиглана</span>
+                  )}
+                </p>
               </div>
 
               <div>
