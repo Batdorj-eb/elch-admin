@@ -114,7 +114,12 @@ const loadArticle = async (articleId) => {
       }
       if (article.published_at) {
         const date = new Date(article.published_at);
-        setPublishedAt(date.toISOString().slice(0, 16));
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        setPublishedAt(`${year}-${month}-${day}T${hours}:${minutes}`);
       }
     }
   } catch (err) {
@@ -231,7 +236,7 @@ const loadArticle = async (articleId) => {
         is_breaking: isBreaking,
         show_author: showAuthor ? 1 : 0, 
         featured_image: uploadedCoverUrl || '',
-        published_at: publishedAt || null
+        published_at: publishedAt ? publishedAt + ':00+08:00' : null
       };
 
       console.log('📤 Sending payload:', payload);
